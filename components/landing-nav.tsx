@@ -6,9 +6,9 @@ import { Activity, Menu, X } from "lucide-react"
 import { useState } from "react"
 
 const links = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How It Works" },
-  { href: "#trust", label: "Trust Engine" },
+  { href: "#trust-studio", label: "Trust Studio" },
+  { href: "#signals", label: "Signals" },
+  { href: "#dashboards", label: "Dashboards" },
 ]
 
 export function LandingNav() {
@@ -30,26 +30,24 @@ export function LandingNav() {
           <span className="text-xs text-muted-foreground">Markets</span>
         </Link>
 
-        {/* Desktop */}
         <div className="hidden items-center gap-8 md:flex">
-          {links.map((l) => (
+          {links.map((link) => (
             <a
-              key={l.href}
-              href={l.href}
+              key={link.href}
+              href={link.href}
               className="text-sm text-muted-foreground transition-colors hover:text-primary"
             >
-              {l.label}
+              {link.label}
             </a>
           ))}
           <Link
-            href="/dashboard/freelancer"
+            href="/auth"
             className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 glow-cyan-sm"
           >
-            Launch App
+            Enter Marketplace
           </Link>
         </div>
 
-        {/* Mobile toggle */}
         <button
           className="text-muted-foreground md:hidden"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -59,7 +57,6 @@ export function LandingNav() {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <motion.div
           className="glass border-t border-border/30 px-6 pb-6 pt-4 md:hidden"
@@ -67,21 +64,21 @@ export function LandingNav() {
           animate={{ opacity: 1, height: "auto" }}
         >
           <div className="flex flex-col gap-4">
-            {links.map((l) => (
+            {links.map((link) => (
               <a
-                key={l.href}
-                href={l.href}
+                key={link.href}
+                href={link.href}
                 className="text-sm text-muted-foreground transition-colors hover:text-primary"
                 onClick={() => setMobileOpen(false)}
               >
-                {l.label}
+                {link.label}
               </a>
             ))}
             <Link
-              href="/dashboard/freelancer"
+              href="/auth"
               className="rounded-lg bg-primary px-5 py-2 text-center text-sm font-medium text-primary-foreground"
             >
-              Launch App
+              Enter Marketplace
             </Link>
           </div>
         </motion.div>

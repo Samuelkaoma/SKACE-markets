@@ -1,44 +1,61 @@
 "use client"
 
-import { Bell, Search, Moon, Sun } from "lucide-react"
-import { useState } from "react"
 import { motion } from "framer-motion"
+import { Bell, LogOut, Moon, Sun } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useTheme } from "next-themes"
 
-export function DashboardTopbar({ title }: { title: string }) {
-  const [isDark, setIsDark] = useState(true)
+import { Button } from "@/components/ui/button"
+import { postJson } from "@/lib/client/api"
+import type { SessionUser } from "@/lib/types"
 
-  const toggleTheme = () => {
-    setIsDark(!isDark)
-    document.documentElement.classList.toggle("dark")
+export function DashboardTopbar({
+  title,
+  session,
+}: {
+  title: string
+  session: SessionUser
+}) {
+  const router = useRouter()
+  const { resolvedTheme, setTheme } = useTheme()
+  const [loggingOut, setLoggingOut] = useState(false)
+  const isDark = resolvedTheme !== "light"
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+
+    try {
+      await postJson<{ signedOut: true }, Record<string, never>>("/api/auth/logout", {})
+      router.push("/auth")
+      router.refresh()
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   return (
     <header className="glass sticky top-0 z-30 flex items-center justify-between border-b border-border/40 px-6 py-3">
       <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/80">
+          SKACE Control Surface
+        </p>
         <h1 className="text-lg font-semibold text-foreground">{title}</h1>
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="hidden items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2 md:flex">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-40 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-          />
+        <div className="hidden rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary md:block">
+          Signed in as {session.name}
         </div>
 
-        {/* Theme Toggle */}
         <button
-          onClick={toggleTheme}
+          onClick={() => setTheme(isDark ? "light" : "dark")}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Toggle theme"
         >
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        {/* Notifications */}
         <button
           className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Notifications"
@@ -47,12 +64,20 @@ export function DashboardTopbar({ title }: { title: string }) {
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
         </button>
 
-        {/* Profile */}
+        <Button variant="outline" size="sm" onClick={() => void handleLogout()} disabled={loggingOut}>
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
+
         <motion.div
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary"
           whileHover={{ scale: 1.05 }}
         >
-          SK
+          {session.name
+            .split(" ")
+            .map((part) => part[0])
+            .slice(0, 2)
+            .join("")}
         </motion.div>
       </div>
     </header>

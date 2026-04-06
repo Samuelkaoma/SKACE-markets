@@ -1,12 +1,16 @@
-"use client"
-
-import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import type { ReactNode } from "react"
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { requireSessionUser } from "@/lib/server/auth"
+
+export const dynamic = "force-dynamic"
+
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const session = await requireSessionUser()
+
   return (
     <div className="animated-gradient flex min-h-screen">
-      <DashboardSidebar />
+      <DashboardSidebar session={session} />
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   )

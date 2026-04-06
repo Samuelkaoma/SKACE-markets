@@ -1,22 +1,13 @@
 import type { Metadata, Viewport } from "next"
-import { Inter, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+
 import "./globals.css"
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-})
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-})
+import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: "SKACE Markets - Smart Knowledge and Credibility Exchange",
+  title: "SKACE Markets",
   description:
-    "AI-Powered Scam Detection & Credibility Engine. Build trust in freelance markets with intelligent risk assessment and fraud prevention.",
+    "Trust infrastructure for freelance work in Zambia: scam detection, credibility scoring, escrow confidence, and hiring intelligence.",
   generator: "SKACE Markets",
   icons: {
     icon: [
@@ -49,11 +40,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body
-        className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}
-      >
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          {children}
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

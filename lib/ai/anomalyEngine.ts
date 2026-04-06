@@ -1,31 +1,37 @@
-import { RiskLevel } from "../types";
+import type { RiskLevel } from "@/lib/types"
 
 export interface ActivityLog {
-  userId: string;
-  action: 'JOB_POST' | 'LOGIN' | 'MESSAGE';
-  timestamp: number;
+  userId: string
+  action: "JOB_POST" | "LOGIN" | "MESSAGE"
+  timestamp: number
 }
 
 export const detectAnomaly = (userLogs: ActivityLog[]) => {
-  const TEN_MINUTES = 10 * 60 * 1000;
-  const now = Date.now();
-  
-  // Filter for actions in the last 10 minutes
-  const recentActions = userLogs.filter(log => (now - log.timestamp) < TEN_MINUTES);
+  const TEN_MINUTES = 10 * 60 * 1000
+  const now = Date.now()
 
-  // Trigger: More than 5 job posts in 10 minutes is a "Bot" behavior in Zambia's market
-  const jobPosts = recentActions.filter(a => a.action === 'JOB_POST').length;
-  
-  let risk: RiskLevel = 'Low';
-  let reason = "Normal behavioral patterns.";
+  const recentActions = userLogs.filter((log) => now - log.timestamp < TEN_MINUTES)
+  const jobPosts = recentActions.filter((action) => action.action === "JOB_POST").length
+  const logins = recentActions.filter((action) => action.action === "LOGIN").length
+  const messages = recentActions.filter((action) => action.action === "MESSAGE").length
 
-  if (jobPosts > 5) {
-    risk = 'High';
-    reason = "Excessive job posting frequency (Potential Bot/Scam spam).";
-  } else if (jobPosts > 3) {
-    risk = 'Medium';
-    reason = "Unusually high activity detected.";
+  let risk: RiskLevel = "low"
+  let score = 5
+  let reason = "Behavior is within expected marketplace thresholds."
+
+  if (jobPosts >= 6 || logins >= 8) {
+    risk = "critical"
+    score = 92
+    reason = "Burst activity strongly resembles bot-like or compromised-account behavior."
+  } else if (jobPosts >= 4 || messages >= 15) {
+    risk = "high"
+    score = 74
+    reason = "Sustained activity spike detected across posting or messaging."
+  } else if (jobPosts >= 3 || logins >= 5) {
+    risk = "medium"
+    score = 46
+    reason = "Recent activity is elevated and worth monitoring."
   }
 
-  return { risk, score: jobPosts * 20, reason };
-};
+  return { risk, score, reason }
+}

@@ -1,45 +1,85 @@
-// lib/ai/scamDetector.ts
-import { ScamResult, RiskLevel } from "../types";
+import type { ScamResult } from "@/lib/types"
+
+const TRIGGER_GROUPS = [
+  {
+    weight: 25,
+    phrases: ["whatsapp", "telegram", "dm me", "private message", "outside the platform"],
+  },
+  {
+    weight: 35,
+    phrases: ["payment before", "upfront fee", "security deposit", "easy money", "investment"],
+  },
+  {
+    weight: 20,
+    phrases: ["verify with code", "send otp", "bank login", "pay first"],
+  },
+]
 
 export const analyzeContentForScam = async (text: string): Promise<ScamResult> => {
-  const lowercaseText = text.toLowerCase();
-  let score = 0;
-  const flaggedPhrases: string[] = [];
+  const normalizedText = text.trim().toLowerCase()
 
-  // 1. Suspicious Contact Methods (High Weight)
-  const contactTriggers = ["whatsapp", "telegram", "dm me", "private message", "outside the platform"];
-  contactTriggers.forEach(phrase => {
-    if (lowercaseText.includes(phrase)) {
-      score += 25;
-      flaggedPhrases.push(phrase);
+  if (!normalizedText) {
+    return {
+      score: 0,
+      level: "low",
+      reason: "No content was provided for analysis.",
+      flaggedPhrases: [],
+      recommendedActions: ["Paste the message or job brief you want reviewed."],
     }
-  });
-
-  // 2. Urgent/Financial Red Flags
-  const financialTriggers = ["payment before", "upfront fee", "security deposit", "easy money", "investment"];
-  financialTriggers.forEach(phrase => {
-    if (lowercaseText.includes(phrase)) {
-      score += 35;
-      flaggedPhrases.push(phrase);
-    }
-  });
-
-  // 3. Fake Urgency
-  if (lowercaseText.includes("immediately") || lowercaseText.includes("urgent")) {
-    score += 10;
   }
 
-  // Calculate Level
-  let level: RiskLevel = "Low";
-  if (score >= 60) level = "High";
-  else if (score >= 30) level = "Medium";
+  let score = 0
+  const flaggedPhrases = new Set<string>()
+
+  for (const group of TRIGGER_GROUPS) {
+    for (const phrase of group.phrases) {
+      if (normalizedText.includes(phrase)) {
+        score += group.weight
+        flaggedPhrases.add(phrase)
+      }
+    }
+  }
+
+  if (normalizedText.includes("urgent") || normalizedText.includes("immediately")) {
+    score += 10
+  }
+
+  if (normalizedText.includes("guaranteed income") || normalizedText.includes("risk free")) {
+    score += 15
+  }
+
+  const boundedScore = Math.min(score, 100)
+  const level =
+    boundedScore >= 75
+      ? "critical"
+      : boundedScore >= 55
+        ? "high"
+        : boundedScore >= 30
+          ? "medium"
+          : "low"
+
+  const recommendedActions =
+    level === "critical" || level === "high"
+      ? [
+          "Keep all communication and payments on-platform.",
+          "Do not share verification codes or move to private channels.",
+          "Require escrow or verified payment before delivery.",
+        ]
+      : level === "medium"
+        ? [
+            "Ask follow-up questions and request verified identity.",
+            "Use escrow before sharing final work.",
+          ]
+        : ["No major scam markers found. Continue with standard due diligence."]
 
   return {
-    score: Math.min(score, 100),
+    score: boundedScore,
     level,
-    reason: score > 30 
-      ? `Found ${flaggedPhrases.length} suspicious patterns typical of employment scams.` 
-      : "No significant risks detected.",
-    flaggedPhrases
-  };
-};
+    reason:
+      level === "low"
+        ? "No significant scam patterns were detected."
+        : `Detected ${flaggedPhrases.size} suspicious patterns that commonly appear in off-platform or advance-fee scams.`,
+    flaggedPhrases: [...flaggedPhrases],
+    recommendedActions,
+  }
+}

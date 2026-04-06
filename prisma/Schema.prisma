@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  FREELANCER
+  EMPLOYER
+  ADMIN
+}
+
+enum VerificationState {
+  VERIFIED
+  REVIEW
+  UNVERIFIED
+}
+
+enum EscrowStatus {
+  PENDING
+  LOCKED
+  RELEASED
+  DISPUTED
+}
+
+model User {
+  id                String             @id @default(cuid())
+  role              UserRole
+  name              String
+  location          String
+  walletBalance     Decimal            @default(0)
+  trustScore        Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  employerJobs      Job[]              @relation("EmployerJobs")
+  sentApplications  Application[]      @relation("FreelancerApplications")
+  escrowAsEmployer  EscrowTransaction[] @relation("EmployerEscrows")
+  escrowAsFreelance EscrowTransaction[] @relation("FreelancerEscrows")
+  trustProfile      TrustProfile?
+  fraudFlags        FraudFlag[]
+}
+
+model TrustProfile {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  completionRate   Float
+  peerReviewAvg    Float
+  forumActivity    Int
+  responseTimeMin  Int
+  reportCount      Int
+  identityStatus   VerificationState
+  skillsStatus     VerificationState
+  paymentsStatus   VerificationState
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id            String        @id @default(cuid())
+  employerId    String
+  title         String
+  company       String
+  location      String
+  remote        Boolean       @default(false)
+  budgetMin     Decimal
+  budgetMax     Decimal
+  currency      String        @default("ZMW")
+  description   String
+  views         Int           @default(0)
+  applications  Int           @default(0)
+  interviews    Int           @default(0)
+  createdAt     DateTime      @default(now())
+  employer      User          @relation("EmployerJobs", fields: [employerId], references: [id], onDelete: Cascade)
+  applicants    Application[]
+  escrows       EscrowTransaction[]
+}
+
+model Application {
+  id           String   @id @default(cuid())
+  jobId        String
+  freelancerId String
+  status       String   @default("SHORTLISTED")
+  createdAt    DateTime @default(now())
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  freelancer   User     @relation("FreelancerApplications", fields: [freelancerId], references: [id], onDelete: Cascade)
+}
+
+model EscrowTransaction {
+  id           String       @id @default(cuid())
+  jobId         String?
+  employerId    String
+  freelancerId  String
+  amount        Decimal
+  status        EscrowStatus
+  holdReference String      @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  employer      User        @relation("EmployerEscrows", fields: [employerId], references: [id], onDelete: Cascade)
+  freelancer    User        @relation("FreelancerEscrows", fields: [freelancerId], references: [id], onDelete: Cascade)
+  job           Job?        @relation(fields: [jobId], references: [id], onDelete: SetNull)
+}
+
+model FraudFlag {
+  id          String   @id @default(cuid())
+  userId      String
+  severity    String
+  type        String
+  confidence  Float
+  reason      String
+  detectedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,25 +1,38 @@
-export type PaymentProvider = 'AIRTEL' | 'MTN' | 'ZAMTEL';
+import { randomUUID } from "node:crypto"
+
+export type PaymentProvider = "AIRTEL" | "MTN" | "ZAMTEL"
+
+const providerPrefixes: Record<PaymentProvider, RegExp> = {
+  AIRTEL: /^(097|077)\d{7}$/,
+  MTN: /^(096|076)\d{7}$/,
+  ZAMTEL: /^(095|075)\d{7}$/,
+}
 
 export const simulateMobileMoneyDeposit = async (
-  phoneNumber: string, 
-  amount: number, 
-  provider: PaymentProvider
+  phoneNumber: string,
+  amount: number,
+  provider: PaymentProvider,
 ) => {
-  // Simulate network latency
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 1200))
 
-  // Basic Zambian number validation (simplified)
-  const isValidNumber = /^(097|096|077|076)\d{7}$/.test(phoneNumber);
+  const normalizedPhone = phoneNumber.replace(/\s+/g, "")
 
-  if (!isValidNumber) {
-    return { success: false, message: "Invalid Zambian mobile number." };
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { success: false, message: "Deposit amount must be greater than zero." }
+  }
+
+  if (!providerPrefixes[provider].test(normalizedPhone)) {
+    return {
+      success: false,
+      message: `Invalid ${provider} mobile money number.`,
+    }
   }
 
   return {
     success: true,
-    transactionId: `TX-${Math.random().toString(36).toUpperCase().substring(2, 10)}`,
+    transactionId: `MM-${randomUUID().slice(0, 8).toUpperCase()}`,
     provider,
     amount,
-    message: `Deposit of K${amount} initiated. Check your phone for the USSD prompt.`
-  };
-};
+    message: `Deposit of K${amount.toLocaleString()} initiated. Confirm the mobile money prompt on your phone.`,
+  }
+}

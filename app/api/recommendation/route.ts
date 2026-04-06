@@ -1,14 +1,22 @@
-import { NextResponse } from "next/server";
-import { rankJobsForUser } from "@/lib/ai/recommendationEngine";
-import { MOCK_ZAMBIAN_USERS, mockJobs } from "@/lib/data/ZambiaData";
+import { RecommendationQuerySchema } from "@/lib/contracts/api"
+import { rankJobsForUser } from "@/lib/ai/recommendationEngine"
+import { getFreelancerById, listOpenJobs } from "@/lib/server/marketplace-repository"
+import { invariant, ok, parseQuery, withErrorBoundary } from "@/lib/server/api"
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId") || "user_001";
-  
-  const user = MOCK_ZAMBIAN_USERS.find(u => u.id === userId);
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+export async function GET(request: Request) {
+  return withErrorBoundary(async () => {
+    const { userId } = parseQuery(request, RecommendationQuerySchema)
+    const freelancer = getFreelancerById(userId)
 
-  const recommendations = rankJobsForUser(user.skills, user.location, mockJobs);
-  return NextResponse.json(recommendations);
+    invariant(freelancer, 404, "USER_NOT_FOUND", "Freelancer profile was not found.")
+
+    const recommendations = rankJobsForUser(
+      freelancer.skills,
+      freelancer.location,
+      listOpenJobs(),
+      freelancer.trustScore,
+    )
+
+    return ok(recommendations)
+  })
 }

@@ -1,33 +1,17 @@
-import { NextResponse } from "next/server";
-import { calculateTrustScore } from "@/lib/ai/trustScore";
-import { TrustMetrics } from "@/lib/types";
+import { TrustMetricsSchema } from "@/lib/contracts/api"
+import { calculateTrustScore, getTrustBreakdown } from "@/lib/ai/trustScore"
+import { ok, parseBody, withErrorBoundary } from "@/lib/server/api"
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
+export async function POST(request: Request) {
+  return withErrorBoundary(async () => {
+    const metrics = await parseBody(request, TrustMetricsSchema)
+    const score = calculateTrustScore(metrics)
+    const breakdown = getTrustBreakdown(metrics)
 
-    // Mapping and validating the incoming data
-    const metrics: TrustMetrics = {
-      completionRate: body.completionRate ?? 0,
-      peerReviewAvg: body.peerReviewAvg ?? 0,
-      forumActivity: body.forumActivity ?? 0,
-      responseTimeMin: body.responseTimeMin ?? 0,
-      reportCount: body.reportCount ?? 0,
-    };
-
-    // Correct function call based on your import
-    const score = calculateTrustScore(metrics);
-
-    return NextResponse.json({ 
+    return ok({
       score,
-      status: "success",
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error("Trust API Error:", error);
-    return NextResponse.json(
-      { error: "Failed to calculate trust score" }, 
-      { status: 500 }
-    );
-  }
+      breakdown,
+      timestamp: new Date().toISOString(),
+    })
+  })
 }

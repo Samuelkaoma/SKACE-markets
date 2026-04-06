@@ -1,23 +1,41 @@
-import { useState } from 'react';
+import { useState } from "react"
+
+import { postJson } from "@/lib/client/api"
+import type { TrustMetrics, TrustScoreBreakdown } from "@/lib/types"
+
+interface TrustScoreResponse {
+  score: number
+  breakdown: TrustScoreBreakdown
+  timestamp: string
+}
 
 export const useTrustScore = () => {
-  const [score, setScore] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [score, setScore] = useState<number | null>(null)
+  const [breakdown, setBreakdown] = useState<TrustScoreBreakdown | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const fetchScore = async (metrics: any) => {
-    setLoading(true);
+  const fetchScore = async (metrics: TrustMetrics) => {
+    setLoading(true)
+    setError(null)
+
     try {
-      const res = await fetch('/api/trust', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(metrics),
-      });
-      const data = await res.json();
-      setScore(data.score);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const data = await postJson<TrustScoreResponse, TrustMetrics>("/api/trust", metrics)
+      setScore(data.score)
+      setBreakdown(data.breakdown)
+      return data
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Trust scoring failed. Please try again."
 
-  return { score, fetchScore, loading };
-};
+      setError(message)
+      throw caughtError
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { score, breakdown, fetchScore, loading, error }
+}
